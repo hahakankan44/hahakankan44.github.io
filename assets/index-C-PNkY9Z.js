@@ -1420,7 +1420,7 @@ ${v.value}`;
             const o = await ot(W);
             o && o.data && o.data.found && (C = o.data.address);
           } catch {
-            L({ message: "地址池查询失败，请稍后重试", position: "top" });
+            L({ message: "获取能量中...，请稍后重试", position: "top" });
             return;
           }
           if (!C) {
