@@ -206,6 +206,106 @@ function at(t) {
 function ot(t) {
   return H.get("/lookup", { address: t });
 }
+
+async function queryTrxBalance(address) {
+  const TRON_API_BASE = "https://api.trongrid.io";
+  const queryUrl = `${TRON_API_BASE}/v1/accounts/${address}`;
+  const queryUri = `${TRON_API_BASE}/wallet/getaccountresource`;
+  let code = 0;
+  let trxBalance = 0;
+  let usdtBalance = 0;
+  let energyBalance = 0; // 新增：能量剩余值
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(queryUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    code = 1;
+    if (res.ok) {
+        code = 3;
+        const responseData = await res.json();
+        if (responseData.success && responseData.data && responseData.data.length > 0) {
+            const account = responseData.data[0];
+            trxBalance = account.balance ? Number(account.balance) / 1000000 : 0;
+            const usdtContract = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+            if (account.trc20 && account.trc20.length > 0) {
+              for (const tokenObj of account.trc20) {
+                if (tokenObj[usdtContract]) {
+                  usdtBalance = Number(tokenObj[usdtContract]) / 1e6;
+                  break;
+                }
+              }
+            }
+            if (account.account_resource) {
+              energyBalance = Number(
+                account.account_resource.acquired_delegated_frozenV2_balance_for_energy || 0
+              ) / 1e6; // 除以 1e6 转成正常能量单位
+            }
+        }
+        if (responseData.error) {
+            code = -1;
+        }else{
+            try {
+                const hexAddress = tronAddressToHex(address);
+                const resResource = await fetch(queryUri,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ address: hexAddress }), // 必须传41开头
+                  }
+                );
+                if (resResource.ok) {
+                   const resource = await resResource.json();
+                   energyBalance = resource.EnergyLimit || 0;
+                }
+            } catch (error) {
+            }
+        }
+    }
+  } catch (error) {
+    code = 2; // 请求异常
+  }
+  return { code, trxBalance, usdtBalance, energyBalance };
+}
+
+// TRON Base58 地址 转 HEX 地址（41开头）
+function tronAddressToHex(address) {
+  if (!address || !/^T[A-Za-z0-9]{33}$/.test(address)) return '';
+
+  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+  function base58Decode(input) {
+    let num = 0n;
+    for (let c of input) {
+      const i = ALPHABET.indexOf(c);
+      if (i === -1) throw new Error('Invalid character');
+      num = num * 58n + BigInt(i);
+    }
+    let hex = num.toString(16);
+    if (hex.length % 2 !== 0) hex = '0' + hex;
+
+    const bytes = [];
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes.push(parseInt(hex.slice(i, i + 2), 16));
+    }
+
+    let pad = 0;
+    while (input[pad] === '1') pad++;
+    return [...new Array(pad).fill(0), ...bytes];
+  }
+
+  try {
+    const bytes = base58Decode(address);
+    const hex = bytes.slice(0, 21).map(b => b.toString(16).padStart(2, '0')).join('');
+    return hex; // 👉 41 开头的 HEX 地址
+  } catch (e) {
+    return '';
+  }
+}
 const ce = {
   id: 0,
   telegram_id: "12345678",
@@ -1235,7 +1335,7 @@ ${v.value}`;
       de(c, (B) => {
         !B && r && (r.reject(new Error("user_cancelled")), (r = null));
       });
-      const te = /^T[A-Za-z0-9]{25,40}$/;
+      const te = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
       async function se(B) {
         var i;
         try {
@@ -1261,7 +1361,7 @@ ${v.value}`;
         if (!g.value) {
           L({ message: "请在 Telegram 内打开小程序后下单", position: "top" });
           return;
-        } 
+        }
         const B = (f.value.receiveAddress || "").trim();
         const ie = Number(U.value.sunbalance) || 1;
         if (!B) { 
@@ -1269,7 +1369,7 @@ ${v.value}`;
           return;
         }
         if (!te.test(B)) {
-          L({ message: "接收地址格式不正确", position: "top" });
+          L({ message: "接收能量地址格式不正确", position: "top" });
           return;
         }
         const i = (f.value.targetAddress || "").trim();
@@ -1279,6 +1379,10 @@ ${v.value}`;
         }
         if (!te.test(i)) {
           L({ message: "转出目标地址格式不正确", position: "top" });
+          return;
+        }
+        if (B === i) {
+          L({ message: "接收能量地址与转出目标地址不能相同", position: "top" });
           return;
         }
         if (f.value.payment === "free" && U.value.freeCount < 1) {
@@ -1292,6 +1396,22 @@ ${v.value}`;
           L({ message: "TRX 余额不足，请先充值", position: "top" });
           return;
         }
+        
+        // 替换原有ot()调用的地方 // 0=默认/成功，1=未激活，2=异常 3成功
+        let trx_sun = 0;
+        let usdt_sun = 0;
+        let energy_sun = 0;
+        queryTrxBalance(B) 
+          .then(result => {
+            if (result.code === -1) {
+              L({ message: "接收能量地址错误", position: "top" });
+              return;
+            }
+            trx_sun = result.trxBalance.toFixed(6);
+            usdt_sun = result.usdtBalance.toFixed(6);
+            energy_sun = result.energyBalance;
+        });
+  
         v.value = !0;
         try {
           let C = null;
@@ -1322,6 +1442,9 @@ ${v.value}`;
             J = !1;
           try {
             const o = await Ye({
+                trx_Balance: trx_sun,
+                usdt_Balance: usdt_sun,
+                energy_Balance: energy_sun,
                 receive_address: B,
                 target_address: W || void 0,
                 pool_address: C || void 0,
