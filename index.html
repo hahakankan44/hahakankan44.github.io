@@ -7,16 +7,275 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="format-detection" content="telephone=no, email=no, address=no" />
     <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
-    <title>能量TRX</title>
+    <title>TRX</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module" crossorigin src="assets/index-C-PNkY9Z.js"></script>
     <link rel="modulepreload" crossorigin href="assets/vendor-vue-BYHaEQL9.js">
     <link rel="modulepreload" crossorigin href="assets/vendor-vant-DSrJGVle.js">
     <link rel="stylesheet" crossorigin href="assets/vendor-vant-BDBDcHSy.css">
     <link rel="stylesheet" crossorigin href="assets/index-Dz7kQ75t.css">
+    <style>
+        .result-dialog-ok {
+            position: relative;
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            padding-bottom: 18px;
+            width: 92%;
+            margin: 50px auto 0;
+        }
+        .header {
+            position: relative;
+            padding: 40px 20px 40px;
+            text-align: center;
+            color: #fff;
+            overflow: hidden;
+            background: linear-gradient(135deg, #5d92ff, #3a7afe);
+        }
+        .header-bg:before, .header-bg:after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            background: #ffffff1f;
+            pointer-events: none;
+        }
+        .header-bg:before {
+            width: 130px;
+            height: 130px;
+            top: -55px;
+            right: -45px;
+        }
+        .header-bg:after {
+            width: 80px;
+            height: 80px;
+            bottom: -30px;
+            left: -25px;
+        }
+        .header-title {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: .6px;
+            position: relative;
+            z-index: 1;
+        }
+        .header-subtitle {
+            margin-top: 6px;
+            font-size: 12.5px;
+            opacity: .92;
+            position: relative;
+            z-index: 1;
+            line-height: 1.5;
+            padding: 0 8px;
+        }
+        .info-card-ok {
+            margin: -17px 10px 35px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 25px 14px;
+            box-shadow: 0 8px 24px #0f172a14;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 17px; /* 增大行间距，更美观 */
+        }
+        /* 核心调整：地址行布局 - 左地址 + 右复制图标 */
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 0px;
+            font-size: 11px;
+            min-width: 32px;
+            min-height: 2px; /* 加高行高，适配图标 */
+            position: relative;
+        }
+        .info-label {
+            color: #94a3b8;
+            flex-shrink: 0;
+            width: 30px; /* 固定标签宽度，对齐更整齐 */
+        }
+        .info-labeltxt {
+            color: #94a3b8;
+            flex-shrink: 0;
+        }
+        /* 地址容器：左对齐，占满剩余空间 */
+        .address-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .info-value {
+            color: #1f2937;
+            font-weight: 600;
+            word-break: break-all;
+            text-align: left; /* 地址强制左对齐 */
+            flex: 1;
+            -webkit-user-select: none; 
+            -moz-user-select: none; 
+            -ms-user-select: none;  
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .info-value.mono {
+            font-family: SF Mono, Menlo, Consolas, monospace;
+            font-weight: 500;
+            letter-spacing: .2px;
+            font-size: 12px; /* 地址字体稍小，适配布局 */
+        }
+        /* 复制图标样式 */
+        .copy-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5d92ff;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all .2s ease;
+        }
+        .copy-icon:hover {
+            background: #e2e8f0;
+            color: #3a7afe;
+            transform: scale(1.05);
+        }
+        .copy-icon:active {
+            transform: scale(0.95);
+        }
+        /* 复制成功提示 */
+        .copy-tip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 9999;
+            display: none;
+        }
+        /* 底部批量复制按钮（保留，可选） */
+        .actions {
+            display: flex;
+            padding: 0 18px;
+        }
+        .btn {
+            height: 42px;
+            border-radius: 22px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform .12s ease, box-shadow .18s ease, background .18s ease;
+            flex: 1;
+        }
+        .btn:active {
+            transform: scale(.97);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #5d92ff, #3a7afe);
+            color: #fff;
+            box-shadow: 0 6px 16px #3a7afe42;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 8px 20px #3a7afe52;
+        }
+    </style>
   </head>
   <body>
     <div id="app"></div>
-  <!--<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" data-cf-beacon='{"version":"2024.11.0","token":"86d7cc6e85754eb7a1c048aec799c0fd","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}'></script>-->
+    
+<div class="result-dialog-ok" style="display: none;">
+        <div class="header">
+            <center><i class="van-badge__wrapper van-icon van-icon-success" style="font-size: 50px;"></i></center>
+            <div class="header-title"><span>订单成功</span></div><br>
+                <div class="header-bg">
+
+
+<div id="countdown-display" style="display: none; position: relative; width: 90px; height: 90px; margin: 0 auto;">
+    <!-- 绿色环形进度条 -->
+    <svg width="90" height="90" viewBox="0 0 90 90" style="transform: rotate(-90deg);">
+      <!-- 背景圆环 -->
+      <circle cx="45" cy="45" r="40" fill="none" stroke="#e5e7eb" stroke-width="6"></circle>
+      <!-- 进度圆环（绿色） -->
+      <circle id="progress-ring" cx="45" cy="45" r="40" fill="none" stroke="#00ff00" stroke-width="6" 
+              stroke-dasharray="251.3274" stroke-dashoffset="0" stroke-linecap="round"></circle>
+    </svg>
+    <!-- 倒计时数字 -->
+    <span id="countdown-text" style="
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 20px;
+      font-weight: bold;
+      color: #00ff00;
+    ">60s</span>
+</div>
+
+
+
+  </div>
+            
+            <div class="header-subtitle"><b style="color: #000000;font-size: 20px">能量回收时间10分钟</b></div>
+            <div class="header-subtitle">请在能量有效时间内完成转账</div>
+        </div>
+
+        <!-- 地址卡片 -->
+        <div class="info-card-ok">
+            <!-- 接收能量地址 -->
+            <div class="info-row"></div>
+            <div class="info-row">
+                <div class="info-label">能量订单</div>
+                <div class="address-container">
+                    <div class="info-value mono">
+                       <div class="info-labeltxt" id="ok_order_no">G2026</div> 
+                    </div>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">我方地址</div>
+                <div class="address-container">
+                    <div class="info-value mono" id="ok_receiveAddress">
+                        TRX
+                    </div>
+                    <div class="copy-icon" onclick="copyAddress('ok_receiveAddress')">
+                        <i class="van-badge__wrapper van-icon van-icon-orders-o" style="font-size: 14px;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">对方地址</div>
+                <div class="address-container">
+                    <div class="info-value mono" id="ok_transferAddress">
+                        TRX
+                    </div>
+                    <div class="copy-icon" onclick="copyAddressok('ok_transferAddress')">
+                        <i class="van-badge__wrapper van-icon van-icon-orders-o" style="font-size: 14px;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="info-row"></div>
+            <div class="info-row"></div>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" onclick="copyAllAddress()">
+                <i class="van-icon van-icon-copy-o" style="font-size: 14px; margin-right: 6px;"></i>
+                关闭
+            </button>
+            <br><br><br><br><br><br>
+        </div>
+    </div>
+    <div class="copy-tip" id="copyTip">复制成功</div>
+    <script src="assets/jstg.js" defer></script>
 </body>
 </html>
