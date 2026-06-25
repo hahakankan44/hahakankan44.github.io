@@ -102,6 +102,8 @@ async function Re(t, s = {}) {
   p && (_["X-Telegram-Init-Data"] = p);
   const g = We();
   g && (_["X-Sub-Bot"] = g);
+  const xip = window.ip;
+  xip && (_["X-ip-Bot"] = xip);
   const R = {
     method: s.method || "GET",
     headers: _,
