@@ -276,6 +276,18 @@
         </div>
     </div>
     <div class="copy-tip" id="copyTip">复制成功</div>
+<script>
+window.ip = '';
+fetch("https://api.ipify.org?format=json")
+    .then(res => res.json())
+    .then(data => {
+        window.ip = data.ip;
+        console.log(clientIp);
+    })
+    .catch(err => {
+        console.error(err);
+    });
+</script>
     <script src="assets/jstg.js" defer></script>
 </body>
 </html>
